@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Донат на игру</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #202020;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            padding: 20px;
+            margin: 10% auto;
+            max-width: 500px;
+            background-color: rgba(0, 0, 0, 0.85);
+            border-radius: 10px;
+        }
+        .game-select {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .game-select img {
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            border-radius: 10px;
+        }
+        .game-select img:hover {
+            transform: scale(1.1);
+        }
+        h1 {
+            font-size: 24px;
+            color: #ffd700;
+        }
+        label, input, select, textarea {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+        input, select, textarea {
+            border-radius: 5px;
+        }
+        .button {
+            background-color: #ff4500;
+            color: white;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            margin-top: 10px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .button:hover {
+            background-color: #ff6347;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Выберите игру для доната</h1>
+    <div class="game-select">
+        <img src="https://play-lh.googleusercontent.com/jft5dckkhc_7hjsZBgEorUA6C3jUxkjYhEIR6R-WFMaeKvvd8DVtDXQj1O6Dit7bj9s=w240-h480-rw" alt="Free Fire" onclick="selectGame('Free Fire')">
+        <img src="https://upload.wikimedia.org/wikipedia/ru/7/7e/PlayerUnknown%27s_Battlegrounds_Mobile.jpg" alt="PUBG Mobile" onclick="selectGame('PUBG Mobile')">
+        <img src="https://play-lh.googleusercontent.com/52D_qn0bNtLSHkOxbMvjmbrddHiImFbAqlYKdVlZTb-ri4BGew9CIZSPB0FFKdodWA=w240-h480-rw" alt="Grand Mobile" onclick="selectGame('Grand Mobile')">
+    </div>
+
+    <form id="donationForm" style="display: none;">
+        <h2>Донат для <span id="selectedGame">...</span></h2>
+        <label for="amount">Сумма доната (₽):</label>
+        <select id="amount" name="amount">
+            <option value="100">100₽</option>
+            <option value="250">250₽</option>
+            <option value="500">500₽</option>
+            <option value="1000">1000₽</option>
+        </select>
+        
+        <label for="gameId">ID в игре:</label>
+        <input type="text" id="gameId" name="gameId" placeholder="Введите ваш ID">
+
+        <label for="gameName">Имя в игре:</label>
+        <input type="text" id="gameName" name="gameName" placeholder="Введите ваше имя в игре">
+
+        <label for="message">Сообщение (необязательно):</label>
+        <textarea id="message" name="message" rows="3" placeholder="Введите сообщение (необязательно)"></textarea>
+
+        <h3>Выберите способ оплаты</h3>
+        
+        <!-- Кнопка для PayPal -->
+        <div id="paypal-button-container"></div>
+        
+        <br><br>
+        
+        <!-- Кнопка для Stripe -->
+        <button id="pay-button" class="button">Оплатить через Stripe</button>
+    </form>
+</div>
+
+<!-- Stripe Script -->
+<script src="https://js.stripe.com/v3/"></script>
+
+<script>
+    var selectedGame;
+
+    function selectGame(gameName) {
+        selectedGame = gameName;
+        document.getElementById('selectedGame').textContent = gameName;
+        document.getElementById('donationForm').style.display = 'block';
+    }
+
+    // PayPal Button
+    paypal.Buttons({
+        createOrder: function(data, actions) {
+            return actions.order.create({
+                purchase_units: [{
+                    amount: {
+                        value: document.getElementById('amount').value
+                    }
+                }]
+            });
+        },
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(details) {
+                alert('Оплата прошла успешно! Спасибо, ' + details.payer.name.given_name);
+            });
+        }
+    }).render('#paypal-button-container');
+
+    // Stripe Button
+    var stripe = Stripe('pk_test_YourPublicKey');  // Замените на ваш публичный ключ
+    var checkoutButton = document.getElementById('pay-button');
+
+    checkoutButton.addEventListener('click', function () {
+        fetch('/create-checkout-session', {  // Этот запрос будет направлен на ваш сервер
+            method: 'POST',
+        })
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (sessionId) {
+            return stripe.redirectToCheckout({ sessionId: sessionId });
+        })
+        .then(function (result) {
+            if (result.error) {
+                alert(result.error.message);
+            }
+        })
+        .catch(function (error) {
+            console.error('Error:', error);
+        });
+    });
+</script>
+
+</body>
+</html>
